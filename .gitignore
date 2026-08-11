@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# dev hand-off deliverable, shared directly and never committed
+wozku-repository-dev-handoff.zip
