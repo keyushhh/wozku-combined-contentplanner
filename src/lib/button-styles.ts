@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 
 const SECONDARY_ACTION_BASE =
-  "flex items-center gap-1.5 rounded-(--r-pill) font-medium text-foreground/85 inset-ring-1 inset-ring-(--ink)/[0.12] transition-[background-color,box-shadow,color,scale] duration-150 hover:bg-(--ink)/[0.06] hover:text-foreground hover:inset-ring-(--ink)/20";
+  "inline-flex shrink-0 items-center justify-center gap-1.5 rounded-(--r-pill) font-medium text-foreground/85 inset-ring-1 inset-ring-(--ink)/[0.12] transition-[background-color,box-shadow,color,scale] duration-150 hover:bg-(--ink)/[0.06] hover:text-foreground hover:inset-ring-(--ink)/20 box-border";
 
 export const SECONDARY_ACTION = cn(
   SECONDARY_ACTION_BASE,
@@ -21,7 +21,7 @@ export const SECONDARY_ACTION_MD = cn(
 
 // violet-* is the brand-aware accent; .wozku remaps the ramp to emerald.
 const PRIMARY_ACTION_BASE =
-  "flex items-center gap-1.5 rounded-(--r-pill) bg-violet-600 font-medium text-white shadow-(--lift-accent) inset-ring-1 inset-ring-(--ink)/15 transition-[background-color,box-shadow,scale] duration-150 hover:bg-violet-500 active:scale-(--press) disabled:pointer-events-none disabled:opacity-40 disabled:shadow-none";
+  "inline-flex shrink-0 items-center justify-center gap-1.5 rounded-(--r-pill) bg-violet-600 font-medium text-white inset-ring-1 inset-ring-(--ink)/15 transition-[background-color,box-shadow,scale] duration-150 hover:bg-violet-500 active:scale-(--press) disabled:pointer-events-none disabled:opacity-40 disabled:shadow-none box-border";
 
 export const PRIMARY_ACTION = cn(PRIMARY_ACTION_BASE, "h-8 px-3.5 text-[13px]");
 

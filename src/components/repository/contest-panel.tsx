@@ -99,15 +99,6 @@ export function ContestPanel({
           </div>
         </Group>
 
-        {contest.qrTarget !== "share" && (
-          <Field
-            label={`${contest.qrTarget === "quiz" ? "Quiz" : "Form"} link`}
-            value={contest.qrUrl}
-            placeholder="https://"
-            onChange={(qrUrl) => onChange({ qrUrl })}
-          />
-        )}
-
         <Group label="Language" hint="Formats scores and numbers on the screen.">
           <select
             value={contest.locale}

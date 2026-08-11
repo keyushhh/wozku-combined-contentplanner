@@ -61,6 +61,7 @@ export function CampaignForm({
   onError,
   onDismissError,
   footer,
+  isNew = false,
 }: {
   draft: NewCampaign;
   missing: { key: keyof NewCampaign; label: string }[];
@@ -71,6 +72,7 @@ export function CampaignForm({
   onError: (msg: string | null) => void;
   onDismissError: () => void;
   footer?: React.ReactNode;
+  isNew?: boolean;
 }) {
   const [showExtra, setShowExtra] = useState(false);
 
@@ -83,6 +85,36 @@ export function CampaignForm({
         <div className="mx-auto grid w-full max-w-[1280px] grid-cols-1 gap-12 px-6 pb-24 pt-10 @[1000px]:grid-cols-[minmax(0,1fr)_380px]">
           <div className="flex min-w-0 flex-col gap-8 lg:pr-8">
             <Section label="Identity">
+              <FieldRow
+                label="Campaign Mode"
+                hint="Contests have a public live screen for physical events. Campaigns are digital-only. This cannot be changed later."
+              >
+                <div className="flex flex-col gap-2">
+                  <div className="flex h-9 items-center rounded-(--r-pill) bg-(--ink)/[0.04] p-1 w-full max-w-sm">
+                    {(["contest", "campaign"] as const).map((mode) => (
+                      <button
+                        key={mode}
+                        type="button"
+                        onClick={() => isNew && onChange({ mode })}
+                        disabled={!isNew}
+                        className={cn(
+                          "flex h-full flex-1 items-center justify-center rounded-[calc(var(--r-pill)-4px)] text-[12.5px] font-medium transition-all duration-200 capitalize",
+                          draft.mode === mode
+                            ? "bg-background text-foreground shadow-sm"
+                            : "text-muted-foreground hover:text-foreground",
+                          !isNew && "cursor-not-allowed opacity-75"
+                        )}
+                      >
+                        {mode}
+                      </button>
+                    ))}
+                  </div>
+                  {!isNew && (
+                    <p className="text-[11.5px] text-amber-600/90 font-medium">Mode cannot be changed after creation.</p>
+                  )}
+                </div>
+              </FieldRow>
+
               <FieldRow
                 label="Logo"
                 required
@@ -153,23 +185,25 @@ export function CampaignForm({
             </Section>
 
             <Section label="The page">
-              <FieldRow
-                label="Header image"
-                required
-                issue={showIssue("headerUrl")}
-                hint="1920 by 400 pixels reads best across the top."
-              >
-                <ImageField
-                  value={draft.headerUrl}
-                  box={HEADER_BOX}
-                  shape="banner"
-                  cta="Upload header image"
-                  headerPosition={draft.headerPosition ?? 50}
-                  onChange={(headerUrl) => onChange({ headerUrl })}
-                  onPositionChange={(headerPosition) => onChange({ headerPosition })}
-                  onError={onError}
-                />
-              </FieldRow>
+              {draft.mode === "campaign" && (
+                <FieldRow
+                  label="Header image"
+                  required
+                  issue={showIssue("headerUrl")}
+                  hint="1920 by 400 pixels reads best across the top."
+                >
+                  <ImageField
+                    value={draft.headerUrl}
+                    box={HEADER_BOX}
+                    shape="banner"
+                    cta="Upload header image"
+                    headerPosition={draft.headerPosition ?? 50}
+                    onChange={(headerUrl) => onChange({ headerUrl })}
+                    onPositionChange={(headerPosition) => onChange({ headerPosition })}
+                    onError={onError}
+                  />
+                </FieldRow>
+              )}
 
               <FieldRow
                 label="Page description"

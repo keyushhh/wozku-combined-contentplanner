@@ -5,7 +5,45 @@ description: Load essential Wozku product and codebase context. Use at the start
 
 # Wozku context
 
-Load this before doing anything else in the Wozku codebase. It exists to stop three specific and expensive mistakes: using the wrong vocabulary, treating mocked data as real, and assuming a feature works because its UI exists.
+Load this before doing anything else in the Wozku codebase. It exists to stop four specific and expensive mistakes: misunderstanding what this repo is for, using the wrong vocabulary, treating mocked data as real, and assuming a feature works because its interface exists.
+
+## What this repo is, before anything else
+
+This is a **design-led prototype**: a specification written in React, built by a product designer directing AI coding tools. It is not a production codebase and not an unfinished one.
+
+```
+design intent -> prototype in this repo -> demo call approval
+   -> HANDOFF_MODE=true snapshot -> zip -> dev team builds the real product
+```
+
+The dev team receives the zip and builds the backend, database, auth, integrations, and production front end.
+
+**Never report these as defects:**
+
+- No backend, no database, no auth. That is the dev team's deliverable, post-handoff.
+- Fabricated metrics. The prototype must look populated so a demo call can judge the design.
+- One giant state component with local storage. Explicitly throwaway.
+- Interface with no behaviour. Often the design question is answered and the behaviour belongs to the dev team.
+
+**Do report these as defects:** anything that stops the prototype communicating design intent unambiguously, and anything that breaks component portability.
+
+### The component doctrine, and it is load-bearing
+
+Components must be copy-pasteable into another project and work the same way, like a Figma component. That portability is the entire reason the handoff has value.
+
+- Data arrives via props. Never reach for global state.
+- No hardcoded API calls, env vars, or app-specific flags inside a reusable component.
+- Self-contained styling: Tailwind utilities and design tokens.
+- Do not assume shared utilities exist in the target. Inline them or flag the dependency in a single-line comment at the top of the file.
+- App-specific components (page containers wired to routing) are allowed but must say so at the top of the file.
+
+**Test:** copy the file into an empty Next.js project. Does it render from its documented props, or fail on an import?
+
+**Worst anti-pattern, and it is present in this codebase:** a component that takes an identifier and manufactures its own data. A signature like `{ campaignId }` followed by a call to a fabrication helper cannot be copied anywhere. When you touch such a component, change it to accept data as props and let the page compute it.
+
+### Definition of done for a screen
+
+Every state reachable by clicking (default, empty, loading, error, mode variants); final copy; demonstrable without narration; portable components; domain logic in `src/lib` as pure functions; anything the prototype cannot express written down.
 
 ## What Wozku is
 

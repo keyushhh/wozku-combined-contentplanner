@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowUp, Check, ChevronDown, History, MessageSquare, Trash2, X } from "lucide-react";
+import { ArrowUp, Check, ChevronDown, History, MessageSquare, X } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -18,7 +18,6 @@ import {
   sortFeedback,
 } from "@/lib/feedback";
 import { currentUser } from "@/lib/mock-data";
-import { ConfirmDialog } from "./confirm-dialog";
 import type { Feedback, FeedbackStatus, Session } from "@/lib/types";
 
 interface FeedbackPanelProps {
@@ -27,7 +26,6 @@ interface FeedbackPanelProps {
   onClose: () => void;
   onAddFeedback: (text: string, sectionLabel?: string) => void;
   onSetStatus: (feedbackId: string, status: FeedbackStatus) => void;
-  onClearHistory?: () => void;
   pendingSectionLabel?: string;
   onClearPendingSection?: () => void;
 }
@@ -223,14 +221,12 @@ export function FeedbackPanel({
   onClose,
   onAddFeedback,
   onSetStatus,
-  onClearHistory,
   pendingSectionLabel,
   onClearPendingSection,
 }: FeedbackPanelProps) {
   const [draft, setDraft] = useState("");
   const [tab, setTab] = useState<Tab>("feedback");
   const [onlyOpen, setOnlyOpen] = useState(false);
-  const [confirmClear, setConfirmClear] = useState(false);
   const [feedbackScrollRef, feedbackScrollMask] = useScrollEdges();
   const [historyScrollRef, historyScrollMask] = useScrollEdges();
 
@@ -268,16 +264,6 @@ export function FeedbackPanel({
           )}
         </h3>
         <div className="flex items-center gap-1">
-          {tab === "changes" && session.history.length > 0 && onClearHistory && (
-            <button
-              onClick={() => setConfirmClear(true)}
-              aria-label="Clear change history"
-              title="Clear change history"
-              className="flex size-8 items-center justify-center rounded-(--r-pill) text-muted-foreground transition-[background-color,color,scale] duration-150 hover:bg-destructive/15 hover:text-destructive active:scale-(--press)"
-            >
-              <Trash2 className="size-3.5" />
-            </button>
-          )}
           <button
             onClick={onClose}
             aria-label="Close feedback panel"
@@ -427,26 +413,6 @@ export function FeedbackPanel({
         </div>
       )}
 
-      <ConfirmDialog
-        open={confirmClear}
-        onOpenChange={setConfirmClear}
-        icon={Trash2}
-        tone="destructive"
-        title="Clear change history?"
-        description="This removes every logged edit for this post. Feedback is kept. This can't be undone."
-        actions={[
-          { label: "Cancel", tone: "outline", onClick: () => setConfirmClear(false) },
-          {
-            label: "Clear history",
-            icon: Trash2,
-            tone: "destructive",
-            onClick: () => {
-              setConfirmClear(false);
-              onClearHistory?.();
-            },
-          },
-        ]}
-      />
     </div>
   );
 }

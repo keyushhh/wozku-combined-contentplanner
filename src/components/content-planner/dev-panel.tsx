@@ -15,15 +15,13 @@ export interface DevPanelProps {
   onDemoState: (id: string) => void;
   brandMode: BrandMode;
   onBrandMode: (mode: BrandMode) => void;
-  version: string;
-  versions: { id: string; label: string }[];
-  onVersion: (id: string) => void;
+  mockNewUser: boolean;
+  onToggleMockNewUser: () => void;
   onResetTour: () => void;
   onResetLifecycle: () => void;
 }
 
 const BRAND_MODES: { id: BrandMode; label: string }[] = [
-  { id: "off", label: "Off" },
   { id: "dark", label: "Dark" },
   { id: "light", label: "Light" },
 ];
@@ -39,9 +37,8 @@ export function DevPanel({
   onDemoState,
   brandMode,
   onBrandMode,
-  version,
-  versions,
-  onVersion,
+  mockNewUser,
+  onToggleMockNewUser,
   onResetTour,
   onResetLifecycle,
 }: DevPanelProps) {
@@ -124,24 +121,19 @@ export function DevPanel({
         value={brandMode}
         onChange={(id) => onBrandMode(id as BrandMode)}
       />
-      <Segmented label="Version" options={versions} value={version} onChange={onVersion} />
 
       <button
-        onClick={onResetTour}
-        title="Show the first-run nudge again without clearing demo content"
-        className="mt-1 flex h-7 w-full items-center gap-1.5 rounded-(--r-pill) px-2.5 text-[11.5px] font-medium text-muted-foreground transition-[background-color,color] duration-150 hover:bg-(--ink)/[0.06] hover:text-foreground"
+        onClick={onToggleMockNewUser}
+        title="Toggle the dashboard's zero state"
+        className={cn(
+          "mt-1 flex h-7 w-full items-center gap-1.5 rounded-(--r-pill) px-2.5 text-[11.5px] font-medium transition-[background-color,color] duration-150",
+          mockNewUser
+            ? "bg-violet-500/[0.16] text-violet-100 inset-ring-1 inset-ring-violet-400/45"
+            : "bg-(--ink)/[0.04] text-muted-foreground inset-ring-1 inset-ring-(--ink)/[0.08] hover:text-foreground"
+        )}
       >
         <RotateCcw className="size-3.5" />
-        Reset first-run tour
-      </button>
-
-      <button
-        onClick={onResetLifecycle}
-        title="Bring the how-it-works strip back"
-        className="flex h-7 w-full items-center gap-1.5 rounded-(--r-pill) px-2.5 text-[11.5px] font-medium text-muted-foreground transition-[background-color,color] duration-150 hover:bg-(--ink)/[0.06] hover:text-foreground"
-      >
-        <RotateCcw className="size-3.5" />
-        Reset how-it-works strip
+        {mockNewUser ? "Disable new user state" : "Simulate new user"}
       </button>
     </div>
   );

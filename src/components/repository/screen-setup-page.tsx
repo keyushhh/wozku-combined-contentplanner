@@ -198,9 +198,14 @@ export function ScreenSetupPage({
                     templateOf(campaign.theme).label
                   } holds one layout rather than playing moments.`
                 : moment
-                  ? `Holding on the ${
-                      MOMENTS.find((m) => m.id === moment)?.label ?? ""
-                    } moment. Select another below to move the preview.`
+                  ? (
+                    <>
+                      Holding on the {MOMENTS.find((m) => m.id === moment)?.label ?? ""} moment. Select another below to move the preview.
+                      {(!MOMENTS.find((m) => m.id === moment)?.fixed && !campaign.theme.moments[moment]?.enabled) && (
+                        <span className="text-amber-500 font-medium ml-1">Note: This moment is turned off and won't play live.</span>
+                      )}
+                    </>
+                  )
                   : "The live screen, scaled down. Select a moment below to preview it."}
             </p>
           </div>

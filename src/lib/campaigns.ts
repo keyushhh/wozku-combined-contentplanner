@@ -51,6 +51,7 @@ export const BLANK_SETTINGS: CampaignSettings = {
 
 export function blankCampaign(): NewCampaign {
   return {
+    mode: "contest",
     name: "",
     tag: "",
     endDate: "",
@@ -96,7 +97,7 @@ export const CAMPAIGN_REQUIRED: {
   {
     key: "headerUrl",
     label: "Header image",
-    filled: (c) => c.headerUrl.trim().length > 0,
+    filled: (c) => c.mode === "contest" || c.headerUrl.trim().length > 0,
   },
   {
     key: "description",

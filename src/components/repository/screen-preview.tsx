@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Pause } from "lucide-react";
+import { Pause, Play } from "lucide-react";
 import { LiveScreen } from "@/components/public/live-screen";
 import { screenThemeVars, type MomentId } from "@/lib/screen-theme";
 import { cn } from "@/lib/utils";
@@ -27,6 +27,7 @@ export function ScreenPreview({
 }) {
   const frame = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.3);
+  const [playing, setPlaying] = useState(false);
 
   useEffect(() => {
     const el = frame.current;
@@ -54,24 +55,32 @@ export function ScreenPreview({
           <span className="size-2 rounded-(--r-round) bg-(--ink)/[0.14]" />
           <span className="size-2 rounded-(--r-round) bg-(--ink)/[0.14]" />
         </span>
-        <span className="ml-1.5 min-w-0 flex-1 truncate rounded-(--r-pill) bg-(--ink)/[0.05] px-2.5 py-0.5 text-[10.5px] text-muted-foreground/70">
-          {origin.replace(/^https?:\/\//, "")}/c/
-          <span className="text-muted-foreground/45">{campaign.id}</span>
+        <span className="ml-1.5 min-w-0 flex-1 truncate rounded-(--r-pill) bg-(--ink)/[0.05] px-2.5 py-0.5 text-[10.5px] text-muted-foreground/70 flex justify-between items-center">
+          <span>
+            {origin.replace(/^https?:\/\//, "")}/c/
+            <span className="text-muted-foreground/45">{campaign.id}</span>
+          </span>
+          {state !== "paused" && (
+            <button
+              onClick={() => setPlaying(!playing)}
+              className="flex items-center gap-1 hover:text-foreground transition-colors"
+            >
+              {playing ? <Pause className="size-3" /> : <Play className="size-3" />}
+              {playing ? "Pause" : "Play"}
+            </button>
+          )}
         </span>
       </div>
 
       {state === "paused" ? (
         <div
-          style={screenThemeVars(campaign.theme)}
-          className="flex flex-col items-center justify-center gap-1.5 bg-(--screen-bg) px-6 py-16 text-center text-(--screen-ink)"
+          className="flex flex-col items-center justify-center gap-1.5 bg-black px-6 py-16 text-center text-white h-[400px]"
+          style={{ height: innerHeight * scale }}
         >
-          <span className="mb-1 flex size-10 items-center justify-center rounded-(--r-round) bg-sky-500/[0.10] text-sky-300 inset-ring-1 inset-ring-sky-400/25">
-            <Pause className="size-4" />
-          </span>
-          <span className="text-[13px] font-semibold">This campaign is paused</span>
-          <span className="max-w-[34ch] text-[11.5px] leading-snug text-(--screen-muted) text-pretty">
-            Visitors see this instead of the screen until you resume it.
-          </span>
+          <h1 className="text-[17px] font-semibold">This campaign is paused</h1>
+          <p className="max-w-[42ch] text-pretty text-[13px] text-white/60">
+            {campaign.name} is taking a short break. Resume it to bring the screen back.
+          </p>
         </div>
       ) : (
         <div ref={frame} className="relative w-full overflow-hidden" style={{ aspectRatio: ASPECT }}>
@@ -88,7 +97,8 @@ export function ScreenPreview({
               posts={posts}
               mediaAssets={mediaAssets}
               momentId={momentId}
-              running={false}
+              running={playing}
+              isPreview={true}
             />
           </div>
         </div>

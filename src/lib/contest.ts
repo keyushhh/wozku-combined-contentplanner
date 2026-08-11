@@ -1,4 +1,4 @@
-export type QrTarget = "share" | "quiz" | "form";
+export type QrTarget = "share";
 
 export interface ContestSettings {
   leaderboardTitle: string;
@@ -16,8 +16,6 @@ export interface ContestSettings {
 
 export const QR_TARGETS: { id: QrTarget; label: string; hint: string }[] = [
   { id: "share", label: "Share link", hint: "Opens the post so people can share it." },
-  { id: "quiz", label: "Quiz", hint: "Opens a quiz you host." },
-  { id: "form", label: "Form", hint: "Opens a signup or entry form you host." },
 ];
 
 export const SCREEN_LOCALES: { id: string; label: string }[] = [

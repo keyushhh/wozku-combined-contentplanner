@@ -16,6 +16,24 @@ import {
 import { cn } from "@/lib/utils";
 import type { Campaign, CampaignState, MediaAsset, Session } from "@/lib/types";
 
+const IMPLEMENTED_MOMENTS: Record<string, MomentId[]> = {
+  blade: ["welcome", "posts", "leaderboard", "featured", "prize", "thanks"],
+  broadcast: ["welcome", "posts"],
+  beacon: ["welcome", "posts", "leaderboard"],
+  relay: ["posts"],
+  mosaic: ["posts"],
+  ledger: ["posts"],
+};
+
+const CONSUMES_IMAGE: Record<string, MomentId[]> = {
+  blade: ["welcome", "leaderboard", "prize", "thanks"],
+  broadcast: ["prize", "thanks"], // through blade fallback
+  beacon: ["prize", "thanks"], // through blade fallback
+  relay: [],
+  mosaic: [],
+  ledger: [],
+};
+
 export function ThemePanel({
   campaign,
   posts,
@@ -94,18 +112,18 @@ export function ThemePanel({
           </p>
         ) : (
           <p className="-mt-1 text-[11.5px] leading-snug text-muted-foreground text-pretty">
-            {template.label} holds one layout instead of playing a sequence, so these have no
-            effect right now. Your settings are kept, and come back the moment you pick a
-            template that plays moments. Images and durations below still apply where the
-            layout uses them.
+            {template.label} holds one persistent view instead of playing a sequence. The only setting used here is how fast the posts rotate.
           </p>
         )}
 
-        <div className={cn("flex flex-col gap-1.5", !sequenced && "opacity-55")}>
+        <div className={cn("flex flex-col gap-1.5")}>
           {MOMENTS.map((moment, i) => {
+            if (!sequenced && moment.id !== "posts") return null;
+
             const value = theme.moments[moment.id];
             const on = moment.fixed || value.enabled;
             const selected = selectedMoment === moment.id;
+            const isFallback = sequenced && !IMPLEMENTED_MOMENTS[theme.template]?.includes(moment.id);
 
             return (
               <div
@@ -143,9 +161,14 @@ export function ThemePanel({
                         )}
                       >
                         {moment.label}
+                        {isFallback && (
+                          <span className="ml-2 rounded-(--r-inner) bg-amber-500/20 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-amber-300">
+                            Fallback
+                          </span>
+                        )}
                       </span>
                       <span className="mt-0.5 block text-[10.5px] leading-snug text-muted-foreground/75 text-pretty">
-                        {on ? moment.description : "Off. Skipped when the screen plays."}
+                        {on ? (isFallback ? "Uses the default layout on this template." : moment.description) : "Off. Skipped when the screen plays."}
                       </span>
                     </span>
                   </button>
@@ -187,7 +210,13 @@ export function ThemePanel({
                           cta={`Upload a ${moment.label.toLowerCase()} image`}
                           size={moment.imageSize ?? "1920×1080"}
                           onChange={(imageUrl) => patchMoment(moment.id, { imageUrl })}
+                          disabled={!CONSUMES_IMAGE[theme.template]?.includes(moment.id)}
                         />
+                        {!CONSUMES_IMAGE[theme.template]?.includes(moment.id) && (
+                          <span className="text-[10.5px] text-muted-foreground">
+                            This template ignores this image.
+                          </span>
+                        )}
                       </div>
                     )}
 

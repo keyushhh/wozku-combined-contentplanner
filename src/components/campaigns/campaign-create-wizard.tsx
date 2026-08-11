@@ -221,6 +221,7 @@ function Step1Setup({
           draft={draft}
           missing={missing}
           touched={touched}
+          isNew={true}
           onChange={(patch) => setDraft((prev) => ({ ...prev, ...patch }))}
           onSettingsChange={(patch) =>
             setDraft((prev) => ({ ...prev, settings: { ...prev.settings, ...patch } }))

@@ -127,6 +127,7 @@ export const mediaAssets: MediaAsset[] = [
 export const campaigns: Campaign[] = [
   {
     id: "camp-test-contest",
+    mode: "contest",
     name: "test-contest",
     tag: "CONTEST",
     inWozku: true,
@@ -154,6 +155,7 @@ export const campaigns: Campaign[] = [
   },
   {
     id: "camp-summer-launch",
+    mode: "contest",
     name: "summer-launch",
     tag: "LAUNCH",
     inWozku: false,

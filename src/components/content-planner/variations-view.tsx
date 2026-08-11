@@ -648,7 +648,7 @@ function VariationEditor({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="flex shrink-0 items-center justify-between gap-4 border-b border-(--ink)/[0.07] px-5 py-3">
+      <div className="@container/toolbar flex shrink-0 items-center justify-between gap-4 border-b border-(--ink)/[0.07] px-5 py-3">
         <div className="flex min-w-0 items-center gap-3">
           <button
             onClick={back}

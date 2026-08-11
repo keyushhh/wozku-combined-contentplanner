@@ -15,9 +15,11 @@ Project-level instructions for Claude Code / Claude in IDE. This file is auto-lo
 
 **Never modify, rebuild, or delete `wozku-repository-dev-handoff.zip` unless explicitly asked to.** Normal development in this directory (features, fixes, refactors) must never touch it as a side effect. If a task doesn't explicitly mention the hand-off zip, leave it alone completely, don't even re-verify it.
 
-The lockdown is controlled by a single flag: `src/lib/handoff.ts` exports `HANDOFF_MODE`, which must always rest at `false` in this working directory. When `false`, the app behaves exactly as it does for normal design work: Classic mode, the Dev Panel (`Ctrl+Shift+D`), brand guidelines toggle, and full Campaign section (Go Live, ROI, Screen Setup, campaign creation/editing) are all present.
+The lockdown is controlled by a single flag: `src/lib/handoff.ts` exports `HANDOFF_MODE`, which must always rest at `false` in this working directory. When `false`, the app behaves exactly as it does for normal design work: the Dev Panel (`Ctrl+Shift+D`) and the full Campaign section (Go Live, ROI, Screen Setup, campaign creation/editing) are all present.
 
-When `true`, several files gate behind it to restrict the app to just the Repository → Campaign draft flow (no Classic mode, brand guidelines forced on, Dev Panel hidden, Campaign section actions hidden). Search for `HANDOFF_MODE` to see every gated call site before changing any of that logic.
+When `true`, several files gate behind it to restrict the app to just the Repository → Campaign draft flow (Dev Panel hidden, Campaign section actions hidden). Search for `HANDOFF_MODE` to see every gated call site before changing any of that logic.
+
+The Wozku brand layer is **not** gated by this flag. `.wozku` is always on, in both modes; `BrandMode` is `"dark" | "light"` and there is no unbranded state. Classic mode no longer exists in either mode.
 
 **Only when explicitly asked to refresh the hand-off zip**, follow this exact sequence:
 1. Flip `HANDOFF_MODE` to `true` in `src/lib/handoff.ts`.
@@ -55,7 +57,7 @@ Never use `git archive`/`git bundle` for this export and never include `.git` in
 
 ## Coding Conventions
 
-- State mode/theme checks explicitly (e.g. `mode !== "off"`, `brandMode === "light"`) rather than relying on implicit truthy/falsy defaults.
+- State mode/theme checks explicitly (e.g. `brandMode === "light"`, `state === "draft"`) rather than relying on implicit truthy/falsy defaults.
 - All React hooks must be called before any early `return` statements.
 - Design tokens (colors, radii, shadows, surfaces) come from CSS custom properties defined in `src/app/globals.css` (e.g. `--r-pill`, `--ink`, `--surface-raised`), not raw Tailwind color/spacing utilities or hardcoded hex values. Reuse the existing token set; add a new token to `globals.css` rather than inlining one-off values.
 - All conditional className composition goes through the `cn()` helper in `src/lib/utils.ts` (a `clsx` + `tailwind-merge` wrapper), never template literals or manual string concatenation.
