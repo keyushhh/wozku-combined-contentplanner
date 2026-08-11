@@ -29,6 +29,61 @@ This file is written to be **self-contained and pasteable**. Drop it into Claude
 
 ---
 
+## 0.5 The operating model: what this repo is for
+
+**Read this before acting on anything else in this document.**
+
+This repository is a **design-led prototype**, built by a product designer directing AI coding tools (Claude Code, Claude Design, Antigravity). It is a specification written in React, not a production codebase.
+
+The flow:
+
+```
+design intent -> prototype in this repo -> demo call approval
+   -> HANDOFF_MODE=true snapshot -> zip -> dev team builds the real product
+```
+
+The development team receives the zip and builds the backend, the database, authentication, integrations, and the production front end. The zip refresh procedure is in `/CLAUDE.md` and must be followed exactly.
+
+**What this means for you as an agent:**
+
+| Do not treat as a defect | Because |
+| --- | --- |
+| No backend, no database, no auth | That is the dev team's deliverable, post-handoff |
+| Fabricated metrics everywhere | The prototype must look populated so a demo call can judge the design |
+| One giant state component, local storage | Explicitly throwaway, and labelled as such |
+| A feature with interface but no behaviour | Often the design question is answered and the behaviour is the dev team's |
+
+**Do treat as a defect:** anything that stops the prototype communicating design intent unambiguously, and anything that breaks component portability.
+
+### The component doctrine
+
+Components must be **copy-pasteable into another project and work the same way**, like a Figma component. This is the mechanism by which the handoff has value: a dev team that can lift the components saves the entire front-end rebuild.
+
+Rules, from `/CLAUDE.md`:
+
+- Data arrives via props. Never reach for global state.
+- No hardcoded API calls, env vars, or app-specific flags inside a reusable component.
+- Self-contained styling: Tailwind utilities and design tokens.
+- Do not assume shared utilities exist in the target. Inline them, or flag the dependency in a single-line comment at the top of the file.
+- Components that are legitimately app-specific must say so at the top of the file.
+
+**The test:** copy the file into an empty Next.js project. Does it render from its documented props, or fail on an import?
+
+**The anti-pattern to watch for:** a component that takes an identifier and manufactures its own data. Anything with a signature like `{ campaignId }` that then calls a fabrication helper cannot be copied anywhere. Accept data as props and let the page compute it. Known offenders are listed in `docs/Wozku-Program-Document.md`, Finding 15.
+
+### Definition of done for a screen
+
+1. Every state reachable by clicking: default, empty, loading, error, mode variants
+2. Copy final, not placeholder
+3. Demonstrable in a demo call without narration
+4. Components portable, or explicitly labelled app-specific
+5. Domain logic in `src/lib` as pure functions, not inline in JSX
+6. Anything the prototype cannot express, written down for the dev team
+
+Real data, real persistence, and real integrations are deliberately absent from that list.
+
+---
+
 ## 1. What Wozku is, in one paragraph
 
 Wozku is a B2B advocacy engine. It takes content a company wants distributed, hands it to the people who already trust that company (customers, employees, event attendees, partners), makes sharing it a two-tap action instead of a writing task, and gamifies the act of sharing so that people actually do it. The bet is that a recommendation travelling through a trusted person's network converts at a rate paid advertising cannot approach, because in B2B the buying decision is complex, high-value, and made on trust rather than impulse. Wozku is the pipe that carries a brand's message through other people's credibility.

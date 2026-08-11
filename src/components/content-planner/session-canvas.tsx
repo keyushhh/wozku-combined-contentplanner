@@ -125,7 +125,7 @@ export function SessionCanvas({
     <div className="flex h-full min-h-0 flex-col">
       <div
         className={cn(
-          "z-10 flex shrink-0 items-center justify-between gap-4 border-b px-6 py-3 transition-colors duration-200",
+          "@container/toolbar z-10 flex shrink-0 items-center justify-between gap-4 border-b px-6 py-3 transition-colors duration-200",
           scrolled
             ? "border-(--ink)/[0.07] shadow-(--lift-md)"
             : "border-transparent",
@@ -149,12 +149,13 @@ export function SessionCanvas({
           </span>
         </div>
 
-        <div className="flex items-center gap-1.5">
+        <div className="flex shrink-0 items-center gap-1.5">
           {readyToSend && (
             <Button
               size="sm"
-              className="h-8 animate-in gap-1.5 rounded-(--r-pill) bg-violet-600 px-3.5 text-sm text-white shadow-(--lift-accent) duration-300 fade-in zoom-in-95 inset-ring-1 inset-ring-(--ink)/15 transition-[background-color,scale] hover:bg-violet-500 active:scale-(--press)"
+              className="h-8 animate-in gap-1.5 rounded-(--r-pill) bg-violet-600 px-3 text-sm text-white shadow-(--lift-accent) duration-300 fade-in zoom-in-95 inset-ring-1 inset-ring-(--ink)/15 transition-[background-color,scale] hover:bg-violet-500 active:scale-(--press) @[620px]/toolbar:px-3.5"
               onClick={onOpenSend}
+              aria-label={needsResend ? "Send update" : "Send to campaign"}
               title={`${needsResend ? "Send update" : "Send to campaign"} (⌘↵)`}
             >
               {needsResend ? (
@@ -162,7 +163,9 @@ export function SessionCanvas({
               ) : (
                 <Send className="size-3.5" />
               )}
-              {needsResend ? "Send Update" : "Send to Campaign"}
+              <span className="hidden @[620px]/toolbar:inline">
+                {needsResend ? "Send Update" : "Send to Campaign"}
+              </span>
             </Button>
           )}
 

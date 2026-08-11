@@ -451,7 +451,7 @@ export function SessionsTable({
     description: 'Click "New post" to create your first one.',
   },
   loading = false,
-  variant = "classic",
+  variant = "canvas",
   pageSize = 15,
   sortKey,
   sortReversed,

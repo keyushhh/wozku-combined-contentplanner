@@ -286,23 +286,26 @@ export function CampaignPage({
                   <Hint
                     label={
                       readyToGoLive
-                        ? "Put this campaign live on Wozku"
+                        ? (campaign.mode === "contest" ? "Publish the public page and start routing posts to the screen" : "Publish the campaign and make it active")
                         : "Submit a post first; a campaign cannot go live empty."
                     }
                   >
-                    <span className="inline-flex">
+                    <span className="inline-flex relative">
+                      {readyToGoLive && campaign.mode === "contest" && (
+                        <div className="absolute -inset-1 animate-pulse rounded-full bg-live-500/20" />
+                      )}
                       <button
                         onClick={onGoLive}
                         disabled={!readyToGoLive}
                         className={PRIMARY_ACTION}
                       >
                         <Rocket className="size-3.5" />
-                        Take it live
+                        {campaign.mode === "contest" ? "Take it live" : "Publish"}
                       </button>
                     </span>
                   </Hint>
                 )}
-                {!HANDOFF_MODE && state === "live" && (
+                {!HANDOFF_MODE && state === "live" && campaign.mode === "contest" && (
                   <Hint label="Take the public page offline for now. Nothing is lost.">
                     <button onClick={() => onPausedChange(true)} className={SECONDARY_ACTION_MD}>
                       <Pause className="size-3.5" />
@@ -310,7 +313,7 @@ export function CampaignPage({
                     </button>
                   </Hint>
                 )}
-                {!HANDOFF_MODE && state === "paused" && (
+                {!HANDOFF_MODE && state === "paused" && campaign.mode === "contest" && (
                   <Hint label="Put the public page back online">
                     <button onClick={() => onPausedChange(false)} className={PRIMARY_ACTION}>
                       <Play className="size-3.5" />
@@ -342,7 +345,7 @@ export function CampaignPage({
                         Calculate ROI
                       </DropdownMenuItem>
                     )}
-                    {!HANDOFF_MODE && (
+                    {!HANDOFF_MODE && campaign.mode === "contest" && (
                       <DropdownMenuItem
                         onClick={onOpenScreenSetup}
                         className="whitespace-nowrap"
@@ -351,7 +354,7 @@ export function CampaignPage({
                         Screen Setup
                       </DropdownMenuItem>
                     )}
-                    {!HANDOFF_MODE && stoppable && (
+                    {!HANDOFF_MODE && stoppable && campaign.mode === "contest" && (
                       <DropdownMenuItem
                         onClick={() => setConfirmStop(true)}
                         className="whitespace-nowrap text-destructive data-highlighted:text-destructive"

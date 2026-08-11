@@ -88,11 +88,13 @@ export function ImageSlot({
   cta,
   size,
   onChange,
+  disabled,
 }: {
   value: string;
   cta: string;
   size: string;
   onChange: (dataUrl: string) => void;
+  disabled?: boolean;
 }) {
   const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
@@ -138,15 +140,17 @@ export function ImageSlot({
         <button
           type="button"
           onClick={() => input.current?.click()}
-          className="flex h-8 items-center rounded-(--r-pill) px-2.5 text-[12px] font-medium text-muted-foreground transition-[background-color,color] duration-150 hover:bg-(--ink)/[0.07] hover:text-foreground"
+          disabled={disabled}
+          className="flex h-8 items-center rounded-(--r-pill) px-2.5 text-[12px] font-medium text-muted-foreground transition-[background-color,color] duration-150 hover:bg-(--ink)/[0.07] hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Replace
         </button>
         <button
           type="button"
           onClick={() => onChange("")}
+          disabled={disabled}
           aria-label="Remove image"
-          className="flex size-8 items-center justify-center rounded-(--r-pill) text-muted-foreground/70 transition-[background-color,color] duration-150 hover:bg-destructive/15 hover:text-destructive"
+          className="flex size-8 items-center justify-center rounded-(--r-pill) text-muted-foreground/70 transition-[background-color,color] duration-150 hover:bg-destructive/15 hover:text-destructive disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-muted-foreground/70"
         >
           <Trash2 className="size-3.5" />
         </button>
@@ -160,7 +164,8 @@ export function ImageSlot({
       <button
         type="button"
         onClick={() => input.current?.click()}
-        className="flex items-center gap-2.5 rounded-(--r-inner) bg-(--ink)/[0.03] px-3 py-2.5 text-left transition-colors duration-150 inset-ring-1 inset-ring-(--ink)/[0.07] hover:bg-(--ink)/[0.06]"
+        disabled={disabled}
+        className="flex items-center gap-2.5 rounded-(--r-inner) bg-(--ink)/[0.03] px-3 py-2.5 text-left transition-colors duration-150 inset-ring-1 inset-ring-(--ink)/[0.07] hover:bg-(--ink)/[0.06] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-(--ink)/[0.03]"
       >
         <span className="flex size-8 shrink-0 items-center justify-center rounded-(--r-inner) bg-violet-500/15 text-violet-200">
           {busy ? (

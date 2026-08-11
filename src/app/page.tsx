@@ -1,34 +1,25 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Button } from "@/components/ui/button";
 import {
-  CalendarDays,
-  PlusCircle,
-  LayoutGrid,
+  LayoutDashboard,
   Search,
-  UserPlus,
-  ChevronDown,
-  Check,
-  Send,
   Database,
   Megaphone,
+  Users,
+  Settings,
   CircleHelp,
   CircleCheck,
   Compass,
   GraduationCap,
   Keyboard,
   Sparkles,
+  LogOut,
+  UserCog,
+  Plug,
 } from "lucide-react";
-import { CampaignSidebar } from "@/components/content-planner/campaign-sidebar";
-import {
-  MAX_CUSTOM_COLUMNS,
-  SessionsTable,
-} from "@/components/content-planner/sessions-table";
-import {
-  SessionDetailPane,
-  type ComposerLayout,
-} from "@/components/content-planner/session-detail-pane";
+import { MAX_CUSTOM_COLUMNS } from "@/components/content-planner/sessions-table";
+import { SessionDetailPane } from "@/components/content-planner/session-detail-pane";
 import { FeedbackPanel } from "@/components/content-planner/feedback-panel";
 import { SendToCampaignSheet } from "@/components/content-planner/send-to-campaign-sheet";
 import { SendSuccessModal } from "@/components/content-planner/send-success-modal";
@@ -36,7 +27,6 @@ import { InviteModal } from "@/components/content-planner/invite-modal";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { useToast } from "@/components/ui/toast";
 import { PostTypeModal } from "@/components/content-planner/post-type-modal";
-import { ClassicPostTypeModal } from "@/components/content-planner/post-type-modal-classic";
 import {
   CommandPalette,
   useCommandPalette,
@@ -55,6 +45,18 @@ import { CampaignsView } from "@/components/campaigns/campaigns-view";
 import { CampaignEditor } from "@/components/campaigns/campaign-editor";
 import { CampaignCreateWizard, type CampaignWizardState } from "@/components/campaigns/campaign-create-wizard";
 import { useBrandLayer, BrandVariantToggle } from "@/components/content-planner/brand-toggle";
+import { AdminShell, type BreadcrumbItem } from "@/components/shell/admin-shell";
+import { WozkuMark } from "@/components/shell/wozku-mark";
+import { SectionPlaceholder } from "@/components/shell/section-placeholder";
+import type { NavItem } from "@/components/shell/nav-rail";
+import { AdminDashboard } from "@/components/admin/admin-dashboard";
+
+export type CampaignView =
+  | { type: "list" }
+  | { type: "detail"; campaignId: string }
+  | { type: "edit"; campaignId: string }
+  | { type: "screen-setup"; campaignId: string }
+  | { type: "wizard"; state: CampaignWizardState };
 import { DevPanel } from "@/components/content-planner/dev-panel";
 import { Walkthrough } from "@/components/content-planner/walkthrough";
 import {
@@ -66,12 +68,7 @@ import {
 import { useLifecycleStrip } from "@/lib/lifecycle";
 import { HANDOFF_MODE } from "@/lib/handoff";
 import { PRIMARY_ACTION_SM } from "@/lib/button-styles";
-import {
-  VERSIONS,
-  type AppVersion,
-} from "@/lib/versions";
 import { ConfirmDialog } from "@/components/content-planner/confirm-dialog";
-import { VersionSwitchDialog } from "@/components/content-planner/version-switch-dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -102,7 +99,6 @@ import { feedbackStatusMeta } from "@/lib/feedback";
 import {
   blankCampaign,
   campaignDrafts,
-  campaignMembers,
   migrateCampaign,
 } from "@/lib/campaigns";
 import { blankContest, type ContestSettings } from "@/lib/contest";
@@ -110,13 +106,18 @@ import { blankScreenTheme, type ScreenTheme } from "@/lib/screen-theme";
 
 const COLUMNS_STORAGE_KEY = "cp_custom_columns";
 const CELLS_STORAGE_KEY = "cp_custom_cells";
-const VERSION_STORAGE_KEY = "cp_version";
 
-type AppSection = "repository" | "campaigns";
+export type AppSection = "dashboard" | "repository" | "campaigns" | "community" | "settings";
 
-const SECTIONS: { id: AppSection; label: string; icon: typeof Database }[] = [
+const SECTIONS: NavItem[] = [
+  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
   { id: "repository", label: "Repository", icon: Database },
   { id: "campaigns", label: "Campaigns", icon: Megaphone },
+  { id: "community", label: "Community", icon: Users, placeholder: true },
+];
+
+const SECONDARY_SECTIONS: NavItem[] = [
+  { id: "settings", label: "Account Settings", icon: Settings, placeholder: true },
 ];
 
 type DemoState = "live" | "empty" | "loading";
@@ -265,14 +266,11 @@ function createBlankSession(id: string, postType: PostType = "Image"): Session {
 export default function Home() {
   const toast = useToast();
   const { open: paletteOpen, setOpen: setPaletteOpen } = useCommandPalette();
-  const [mode, setMode] = useState<AppVersion>("repository");
-  const [pendingVersion, setPendingVersion] = useState<AppVersion | null>(null);
   const [campaigns, setCampaigns] = useState<typeof initialCampaigns>(initialCampaigns);
   const [sessions, setSessions] = useState<Session[]>(initialSessions);
   const [mounted, setMounted] = useState(false);
 
   const [selectedCampaignId, setSelectedCampaignId] = useState(campaigns[0].id);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [showPostType, setShowPostType] = useState(false);
@@ -281,10 +279,8 @@ export default function Home() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [bulkSendIds, setBulkSendIds] = useState<string[] | null>(null);
   const [sendPreset, setSendPreset] = useState<string[] | null>(null);
-  const [repoCampaignId, setRepoCampaignId] = useState<string | null>(null);
-  const [section, setSection] = useState<AppSection>("repository");
-  const [editingCampaignId, setEditingCampaignId] = useState<string | null>(null);
-  const [campaignWizard, setCampaignWizard] = useState<CampaignWizardState | null>(null);
+  const [section, setSection] = useState<AppSection>("dashboard");
+  const [campaignView, setCampaignView] = useState<CampaignView>({ type: "list" });
   const [sendResult, setSendResult] = useState<
     { title: string; campaignIds: string[]; plural?: boolean } | null
   >(null);
@@ -292,17 +288,14 @@ export default function Home() {
   const [demoState, setDemoState] = useState<DemoState>("live");
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [goLiveCampaignId, setGoLiveCampaignId] = useState<string | null>(null);
-  const [screenSetupCampaignId, setScreenSetupCampaignId] = useState<string | null>(null);
   const [roiSheetCampaignId, setRoiSheetCampaignId] = useState<string | null>(null);
   const [showChangelog, setShowChangelog] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [changelogFilter, setChangelogFilter] = useState<"all" | ChangeKind>("all");
+  const [mockNewUser, setMockNewUser] = useState(false);
   const { unread: changelogUnread, markSeen: markChangelogSeen } = useChangelogUnread();
-  const composerLayout: ComposerLayout = mode === "repository" ? "canvas" : "split";
 
-  const { mode: brandMode, setMode: setBrandMode } = useBrandLayer(
-    mode === "repository",
-  );
+  const { mode: brandMode, setMode: setBrandMode } = useBrandLayer();
 
   const [devPanelOpen, setDevPanelOpen] = useState(false);
   const [tourOpen, setTourOpen] = useState(false);
@@ -328,7 +321,7 @@ export default function Home() {
 
   const startTutorial = useCallback(() => {
     setSection("repository");
-    setRepoCampaignId(null);
+    setCampaignView({ type: "list" });
     setSelectedSessionId(null);
     setTutorialPostId(null);
     tutorialChoice.current = null;
@@ -366,10 +359,10 @@ export default function Home() {
   }
 
   useEffect(() => {
-    if (tourSeen || mode !== "repository" || section !== "repository") return;
+    if (tourSeen || section !== "repository") return;
     const t = setTimeout(() => setShowTourNudge(true), 700);
     return () => clearTimeout(t);
-  }, [tourSeen, mode, section]);
+  }, [tourSeen, section]);
 
   const [customColumns, setCustomColumns] = useState<CustomColumn[]>([]);
   const [customCellValues, setCustomCellValues] = useState<CustomCellValues>({});
@@ -428,10 +421,6 @@ export default function Home() {
 
   useEffect(() => {
     setMounted(true);
-    const savedVersion = localStorage.getItem(VERSION_STORAGE_KEY);
-    if (savedVersion === "classic" || savedVersion === "repository") {
-      setMode(savedVersion);
-    }
     const savedCampaigns = localStorage.getItem("cp_campaigns");
     if (savedCampaigns) {
       try {
@@ -464,12 +453,6 @@ export default function Home() {
       } catch (e) {}
     }
   }, []);
-
-  useEffect(() => {
-    if (mounted) {
-      localStorage.setItem(VERSION_STORAGE_KEY, mode);
-    }
-  }, [mode, mounted]);
 
   useEffect(() => {
     if (mounted) {
@@ -516,33 +499,86 @@ export default function Home() {
       : null;
 
   const selectedCampaign = campaigns.find((c) => c.id === selectedCampaignId)!;
-  const repoCampaign =
-    mode === "repository"
-      ? campaigns.find((c) => c.id === repoCampaignId) ?? null
-      : null;
+  const campaignWizard = campaignView.type === "wizard" ? campaignView.state : null;
   const editingCampaign =
-    campaigns.find((c) => c.id === editingCampaignId) ?? null;
-  /* Gated on repository mode like repoCampaign — the id outlives a section switch. */
+    campaignView.type === "edit"
+      ? campaigns.find((c) => c.id === campaignView.campaignId) ?? null
+      : null;
   const screenSetupCampaign =
-    mode === "repository"
-      ? campaigns.find((c) => c.id === screenSetupCampaignId) ?? null
+    campaignView.type === "screen-setup"
+      ? campaigns.find((c) => c.id === campaignView.campaignId) ?? null
+      : null;
+  const repoCampaign =
+    campaignView.type === "detail"
+      ? campaigns.find((c) => c.id === campaignView.campaignId) ?? null
       : null;
 
-  // Gated like CampaignPage's render: repoCampaignId outlives a section switch.
   const campaignPageId =
-    mode === "repository" &&
-    section === "campaigns" &&
-    !campaignWizard &&
-    !editingCampaign
-      ? repoCampaignId
+    section === "campaigns" && campaignView.type === "detail"
+      ? campaignView.campaignId
       : null;
 
-  const currentCampaignId =
-    mode === "repository" ? campaignPageId : selectedCampaignId;
-  const campaignSessions = campaignMembers(sessions, selectedCampaign).sort(
-      (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
-    );
-  const classicDrafts = campaignDrafts(sessions, selectedCampaignId);
+  const breadcrumbs: BreadcrumbItem[] = (() => {
+    if (section === "dashboard") {
+      return [{ label: "Dashboard" }];
+    }
+    if (section === "repository") {
+      return [{ label: "Repository" }];
+    }
+    if (section === "community") {
+      return [{ label: "Community" }];
+    }
+    if (section === "settings") {
+      return [{ label: "Account Settings" }];
+    }
+    if (section === "campaigns") {
+      const base: BreadcrumbItem[] = [
+        {
+          label: "Campaigns",
+          onClick:
+            campaignView.type !== "list"
+              ? () => setCampaignView({ type: "list" })
+              : undefined,
+        },
+      ];
+
+      if (campaignView.type === "detail") {
+        const c = campaigns.find((item) => item.id === campaignView.campaignId);
+        return [...base, { label: c?.name ?? "Campaign" }];
+      }
+      if (campaignView.type === "edit") {
+        const c = campaigns.find((item) => item.id === campaignView.campaignId);
+        return [
+          ...base,
+          {
+            label: c?.name ?? "Campaign",
+            onClick: () =>
+              setCampaignView({ type: "detail", campaignId: campaignView.campaignId }),
+          },
+          { label: "Edit Settings" },
+        ];
+      }
+      if (campaignView.type === "screen-setup") {
+        const c = campaigns.find((item) => item.id === campaignView.campaignId);
+        return [
+          ...base,
+          {
+            label: c?.name ?? "Campaign",
+            onClick: () =>
+              setCampaignView({ type: "detail", campaignId: campaignView.campaignId }),
+          },
+          { label: "Screen Setup" },
+        ];
+      }
+      if (campaignView.type === "wizard") {
+        return [...base, { label: "New Campaign" }];
+      }
+      return base;
+    }
+    return [];
+  })();
+
+  const currentCampaignId = campaignPageId;
   const draftsWaiting = campaigns.reduce(
     (total, c) => total + campaignDrafts(sessions, c.id).length,
     0,
@@ -624,12 +660,6 @@ export default function Home() {
           updatedAt: new Date().toISOString(),
         };
       }),
-    );
-  }
-
-  function clearHistory(id: string) {
-    setSessions((prev) =>
-      prev.map((s) => (s.id === id ? { ...s, history: [] } : s)),
     );
   }
 
@@ -775,16 +805,7 @@ export default function Home() {
 
   function openCampaign(campaignId: string) {
     setSelectedSessionId(null);
-    setSelectedCampaignId(campaignId);
-    if (mode === "repository") {
-      setSection("campaigns");
-      setRepoCampaignId(campaignId);
-    }
-  }
-
-  function changeVersion(next: AppVersion) {
-    setMode(next);
-    setSelectedIds([]);
+    setCampaignView({ type: "detail", campaignId });
   }
 
   function unlockSession(id: string) {
@@ -808,13 +829,13 @@ export default function Home() {
         contest: blankContest(),
       },
     ]);
+    setCampaignView({ type: "detail", campaignId: id });
     return id;
   }
 
   function saveCampaign(campaignId: string, draft: NewCampaign) {
     setCampaigns((prev) =>
-      prev.map((c) =>
-        c.id === campaignId ? { ...c, ...draft, tag: draft.tag || "NEW" } : c,
+      prev.map((c) => c.id === campaignId ? { ...c, ...draft, tag: draft.tag || "NEW" } : c,
       ),
     );
   }
@@ -864,9 +885,7 @@ export default function Home() {
 
   function patchCampaignContest(campaignId: string, patch: Partial<ContestSettings>) {
     setCampaigns((prev) =>
-      prev.map((c) =>
-        c.id === campaignId ? { ...c, contest: { ...c.contest, ...patch } } : c,
-      ),
+      prev.map((c) => (c.id === campaignId ? { ...c, contest: { ...c.contest, ...patch } } : c)),
     );
   }
 
@@ -1020,19 +1039,14 @@ export default function Home() {
         : createBlankSession(id, postType),
     ]);
     if (inTutorial) setTutorialPostId(id);
-    if (mode === "classic") {
-      setCampaigns((prev) =>
-        prev.map((c) =>
-          c.id === selectedCampaignId
-            ? { ...c, sessionIds: [...c.sessionIds, id] }
-            : c,
-        ),
-      );
-    }
-    if (campaignWizard) {
-      setCampaignWizard((prev) =>
-        prev ? { ...prev, postIds: [...prev.postIds, id] } : null,
-      );
+    if (campaignView.type === "wizard") {
+      setCampaignView({
+        type: "wizard",
+        state: {
+          ...campaignView.state,
+          postIds: [...campaignView.state.postIds, id],
+        },
+      });
     }
     // Created inside a campaign: stage it there rather than leaving it unattached.
     if (campaignPageId) stageDrafts([id], [campaignPageId]);
@@ -1100,435 +1114,250 @@ export default function Home() {
     );
   }
 
-  const isCanvas = composerLayout === "canvas";
+  const accountItems = [
+    { id: "profile", label: "Profile", icon: UserCog, disabled: true },
+    { id: "integrations", label: "Integrations", icon: Plug, disabled: true },
+    { id: "shortcuts", label: "Keyboard shortcuts", icon: Keyboard, onSelect: () => setShowShortcuts(true) },
+    { id: "signout", label: "Sign out", icon: LogOut, disabled: true },
+  ];
+
+  const helpMenu = (
+    <div className="relative">
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          render={
+            <button
+              title="Help"
+              aria-label="Help"
+              className="relative flex size-7 items-center justify-center rounded-(--r-pill) text-muted-foreground transition-[background-color,color,scale] duration-150 hover:bg-(--ink)/[0.06] hover:text-foreground active:scale-(--press)"
+            />
+          }
+        >
+          <CircleHelp className="size-3.5" />
+          {changelogUnread && (
+            <span
+              aria-hidden
+              className="absolute right-0.5 top-0.5 size-1.5 rounded-(--r-round) bg-violet-400"
+            />
+          )}
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="min-w-[210px]">
+          <DropdownMenuItem onClick={startTour} className="gap-2">
+            <Compass className="size-3.5 shrink-0" />
+            Show me around
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={startTutorial} className="gap-2">
+            <GraduationCap className="size-3.5 shrink-0" />
+            Walk me through a post
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => {
+              setShowChangelog(true);
+              markChangelogSeen();
+            }}
+            className="gap-2"
+          >
+            <Sparkles className="size-3.5 shrink-0" />
+            <span className="flex-1">What&rsquo;s new</span>
+            {changelogUnread && (
+              <span className="size-1.5 rounded-(--r-round) bg-violet-400" />
+            )}
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => setPaletteOpen(true)} className="gap-2">
+            <Search className="size-3.5 shrink-0" />
+            <span className="flex-1">Search &amp; commands</span>
+            <span className="text-[10px] text-muted-foreground/70">⌘K</span>
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => setShowShortcuts(true)} className="gap-2">
+            <Keyboard className="size-3.5 shrink-0" />
+            Keyboard shortcuts
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      {showTourNudge && (
+        <div
+          role="dialog"
+          aria-label="Take the tour"
+          className="absolute right-0 top-[calc(100%+10px)] z-40 w-[250px] rounded-(--r-float) bg-(--surface-float) p-3.5 text-left shadow-(--lift-lg) inset-ring-1 inset-ring-(--ink)/[0.09] duration-200 animate-in fade-in slide-in-from-top-1 motion-reduce:animate-none"
+        >
+          <span
+            aria-hidden
+            className="absolute -top-1 right-2.5 size-2 rotate-45 rounded-[2px] bg-(--surface-float) inset-ring-1 inset-ring-(--ink)/[0.09]"
+          />
+          <span className="block text-[13px] font-semibold tracking-[-0.01em]">
+            New here?
+          </span>
+          <span className="mt-1 block text-[12.5px] leading-snug text-muted-foreground text-pretty">
+            Take the 30-second tour; we&rsquo;ll show you how a post gets from draft
+            to a live campaign.
+          </span>
+          <div className="mt-3 flex items-center justify-end gap-1.5">
+            <button
+              onClick={dismissNudge}
+              className="h-7 rounded-(--r-pill) px-2.5 text-xs text-muted-foreground transition-[background-color,color] duration-150 hover:bg-(--ink)/[0.06] hover:text-foreground"
+            >
+              Dismiss
+            </button>
+            <button onClick={startTour} className={PRIMARY_ACTION_SM}>
+              Start tour
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 
   return (
-    <div
-      className={cn(
-        "flex h-screen w-full flex-col overflow-hidden bg-background text-foreground",
-        isCanvas &&
-          "[background-image:var(--wash-page)]",
-      )}
-    >
-      <div
-        className={cn(
-          "flex h-10 shrink-0 items-center",
-          isCanvas
-            ? "border-b border-(--ink)/[0.06] bg-(--sink)/[0.14]"
-            : "border-b border-border bg-card/40",
-        )}
-      >
-        <div className="mx-auto flex w-full max-w-[1280px] items-center justify-between px-6">
-        <div className="flex items-center gap-3">
-          <span className="text-xs font-medium text-muted-foreground">
-            Content Planner
-          </span>
-
-          {mode === "repository" && (
-            <>
-              <span
-                aria-hidden
-                className="h-4 w-px shrink-0 bg-(--ink)/[0.10]"
-              />
-              <div
-                role="tablist"
-                aria-label="Section"
-                className="flex items-center gap-0.5 rounded-(--r-pill) bg-(--ink)/[0.035] p-0.5 inset-ring-1 inset-ring-(--ink)/[0.07]"
-              >
-                {SECTIONS.map(({ id, label, icon: Icon }) => {
-                  const active = section === id;
-                  return (
-                    <button
-                      key={id}
-                      role="tab"
-                      aria-selected={active}
-                      onClick={() => {
-                        setSection(id);
-                        setCampaignWizard(null);
-                        setEditingCampaignId(null);
-                        if (id === "campaigns") setRepoCampaignId(null);
-                      }}
-                      className={cn(
-                        "relative flex h-6 items-center gap-1.5 rounded-(--r-pill) px-2.5 text-[11.5px] font-medium transition-[background-color,color,box-shadow,scale] duration-200 active:scale-(--press) after:absolute after:inset-x-0 after:top-1/2 after:h-10 after:-translate-y-1/2 after:content-['']",
-                        active
-                          ? "bg-(--ink)/[0.11] text-foreground shadow-(--lift-sm)"
-                          : "text-muted-foreground hover:text-foreground",
-                      )}
-                      style={{ transitionTimingFunction: "cubic-bezier(0.2,0,0,1)" }}
-                    >
-                      <Icon className="size-3 shrink-0" />
-                      {label}
-                      {id === "campaigns" && draftsWaiting > 0 && (
-                        <span className="ml-0.5 flex h-4 min-w-4 items-center justify-center rounded-(--r-pill) bg-amber-500/20 px-1 text-[9.5px] font-semibold tabular-nums text-amber-300">
-                          {draftsWaiting}
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </>
-          )}
-          <button
-            onClick={() => setPaletteOpen(true)}
-            title="Search everything (⌘K)"
-            className={cn(
-              "group relative flex h-7 w-[240px] items-center gap-2 rounded-(--r-pill) pl-2 pr-1.5 text-[11px] font-medium text-muted-foreground transition-[background-color,color,box-shadow] duration-150 hover:text-foreground after:absolute after:inset-x-0 after:top-1/2 after:h-10 after:-translate-y-1/2 after:content-['']",
-              isCanvas
-                ? "bg-(--ink)/[0.03] inset-ring-1 inset-ring-(--ink)/[0.08] hover:bg-(--ink)/[0.06]"
-                : "border border-border hover:bg-accent/40",
+    <>
+      <AdminShell
+        brand={<WozkuMark />}
+        items={SECTIONS}
+        secondaryItems={SECONDARY_SECTIONS}
+        activeId={section}
+        onNavigate={(id) => {
+          const next = id as AppSection;
+          setSection(next);
+          if (next === "campaigns") {
+            setCampaignView({ type: "list" });
+          }
+        }}
+        breadcrumbs={breadcrumbs}
+        onOpenSearch={() => setPaletteOpen(true)}
+        searchHint="⌘K"
+        user={currentUser}
+        accountItems={accountItems}
+        accountFooter={
+          <BrandVariantToggle mode={brandMode} onChange={setBrandMode} />
+        }
+        utility={
+          <>
+            {HANDOFF_MODE && (
+              <DemoStateToggle value={demoState} onChange={setDemoState} />
             )}
-          >
-            <Search className="size-3 shrink-0" />
-            <span className="flex-1 text-left">Search</span>
-            <kbd className="rounded-sm bg-(--ink)/[0.07] px-1 py-px text-[10px] text-muted-foreground/80 inset-ring-1 inset-ring-(--ink)/[0.07] transition-colors duration-150 group-hover:text-foreground/80">
-              ⌘K
-            </kbd>
-          </button>
-        </div>
-        <div className="flex items-center gap-1.5">
-        {HANDOFF_MODE && (
-          <>
-            <DemoStateToggle value={demoState} onChange={setDemoState} />
-            <BrandVariantToggle
-              mode={brandMode === "light" ? "light" : "dark"}
-              onChange={setBrandMode}
-            />
+            {helpMenu}
           </>
-        )}
-        <div className="relative">
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              render={
-                <button
-                  title="Help"
-                  aria-label="Help"
-                  className={cn(
-                    "relative flex size-7 items-center justify-center rounded-(--r-pill) text-muted-foreground transition-[background-color,color,scale] duration-150 hover:text-foreground active:scale-(--press) after:absolute after:inset-x-0 after:top-1/2 after:h-10 after:-translate-y-1/2 after:content-['']",
-                    isCanvas ? "hover:bg-(--ink)/[0.06]" : "hover:bg-accent/40",
-                  )}
-                />
-              }
-            >
-              <CircleHelp className="size-3.5" />
-              {changelogUnread && (
-                <span
-                  aria-hidden
-                  className="absolute right-0.5 top-0.5 size-1.5 rounded-(--r-round) bg-violet-400"
-                />
-              )}
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="min-w-[210px]">
-              <DropdownMenuItem onClick={startTour} className="gap-2">
-                <Compass className="size-3.5 shrink-0" />
-                Show me around
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={startTutorial} className="gap-2">
-                <GraduationCap className="size-3.5 shrink-0" />
-                Walk me through a post
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => {
-                  setShowChangelog(true);
-                  markChangelogSeen();
-                }}
-                className="gap-2"
-              >
-                <Sparkles className="size-3.5 shrink-0" />
-                <span className="flex-1">What&rsquo;s new</span>
-                {changelogUnread && (
-                  <span className="size-1.5 rounded-(--r-round) bg-violet-400" />
-                )}
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setPaletteOpen(true)} className="gap-2">
-                <Search className="size-3.5 shrink-0" />
-                <span className="flex-1">Search &amp; commands</span>
-                <span className="text-[10px] text-muted-foreground/70">⌘K</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setShowShortcuts(true)} className="gap-2">
-                <Keyboard className="size-3.5 shrink-0" />
-                Keyboard shortcuts
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          {showTourNudge && (
-            <div
-              role="dialog"
-              aria-label="Take the tour"
-              className="absolute right-0 top-[calc(100%+10px)] z-40 w-[250px] rounded-(--r-float) bg-(--surface-float) p-3.5 text-left shadow-(--lift-lg) inset-ring-1 inset-ring-(--ink)/[0.09] duration-200 animate-in fade-in slide-in-from-top-1 motion-reduce:animate-none"
-            >
-              <span
-                aria-hidden
-                className="absolute -top-1 right-2.5 size-2 rotate-45 rounded-[2px] bg-(--surface-float) inset-ring-1 inset-ring-(--ink)/[0.09]"
-              />
-              <span className="block text-[13px] font-semibold tracking-[-0.01em]">
-                New here?
-              </span>
-              <span className="mt-1 block text-[12.5px] leading-snug text-muted-foreground text-pretty">
-                Take the 30-second tour; we&rsquo;ll show you how a post gets from draft
-                to a live campaign.
-              </span>
-              <div className="mt-3 flex items-center justify-end gap-1.5">
-                <button
-                  onClick={dismissNudge}
-                  className="h-7 rounded-(--r-pill) px-2.5 text-xs text-muted-foreground transition-[background-color,color] duration-150 hover:bg-(--ink)/[0.06] hover:text-foreground"
-                >
-                  Dismiss
-                </button>
-                <button onClick={startTour} className={PRIMARY_ACTION_SM}>
-                  Start tour
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-        </div>
-        </div>
-      </div>
-
-      <div className="flex min-h-0 flex-1">
-        {mode === "classic" ? (
-          <>
-            <CampaignSidebar
-              campaigns={campaigns}
-              selectedCampaignId={selectedCampaignId}
-              onSelectCampaign={(id) => {
-                setSelectedCampaignId(id);
-                setSelectedSessionId(null);
-              }}
-              collapsed={sidebarCollapsed}
-              onToggleCollapsed={() => setSidebarCollapsed((v) => !v)}
-            />
-
-            <div className="flex min-w-0 flex-1 flex-col">
-              <header
-                className={cn(
-                  "flex shrink-0 items-center justify-between gap-4 px-5",
-                  isCanvas ? "h-16 border-b border-(--ink)/[0.06]" : "h-14 border-b border-border px-4",
-                )}
-              >
-                <div className="flex items-center gap-3">
-                  <span
-                    className={cn(
-                      "flex items-center justify-center",
-                      isCanvas
-                        ? "size-9 rounded-(--r-pill) bg-violet-500/12 text-violet-300 inset-ring-1 inset-ring-violet-400/25"
-                        : "size-7 rounded-md bg-violet-600 text-white",
-                    )}
-                  >
-                    <CalendarDays className="size-4" />
-                  </span>
-                  <span className={cn("font-semibold", isCanvas ? "text-[15px] tracking-tight" : "text-sm")}>
-                    {selectedCampaign.name}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="gap-1.5 text-sm text-foreground hover:bg-accent"
-                    onClick={() => setShowInviteModal(true)}
-                  >
-                    <UserPlus className="size-4" />
-                    Invite
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="gap-1.5 text-sm"
-                    onClick={handleNewContent}
-                  >
-                    <PlusCircle className="size-4" />
-                    New post
-                  </Button>
-                  <Button variant="ghost" size="sm" className="gap-1.5 text-sm">
-                    <LayoutGrid className="size-4" />
-                    Screen Setup
-                  </Button>
-                  {classicDrafts.length > 0 && (
-                    <button
-                      onClick={() =>
-                        submitDrafts(
-                          selectedCampaignId,
-                          classicDrafts.map((s) => s.id),
-                        )
-                      }
-                      title="Put these drafts into the campaign"
-                      className="ml-1 flex h-8 items-center gap-1.5 rounded-(--r-pill) bg-violet-600 px-3 text-[13px] font-medium text-white transition-[background-color,scale] duration-150 hover:bg-violet-500 active:scale-[0.96]"
-                    >
-                      <Send className="size-3.5" />
-                      Submit{" "}
-                      <span className="tabular-nums">{classicDrafts.length}</span>{" "}
-                      {classicDrafts.length === 1 ? "draft" : "drafts"}
-                    </button>
-                  )}
-                </div>
-              </header>
-
-              <div
-                className={cn(
-                  "min-h-0 flex-1",
-                  isCanvas && "overflow-y-auto",
-                )}
-              >
-                {isCanvas ? (
-                  <div className="mx-auto w-full max-w-[1280px] px-6 pb-16">
-                    <div className="pb-6 pt-7">
-                      <h1 className="text-[28px] font-semibold leading-tight tracking-[-0.025em] text-balance">
-                        {selectedCampaign.name}
-                      </h1>
-                      <p className="mt-1.5 text-[13px] text-muted-foreground">
-                        Content scheduled for this campaign.
-                      </p>
-                    </div>
-                    <SessionsTable
-                      variant="canvas"
-                      sessions={demoState === "empty" ? [] : campaignSessions}
-                      campaigns={campaigns}
-                      loading={demoState === "loading"}
-                      selectedSessionId={selectedSessionId}
-                      onSelectSession={openSession}
-                      onOpenSend={requestSend}
-                      onDeleteSession={deleteSession}
-                      onUnlockSession={unlockSession}
-                      {...customColumnProps}
-                    />
-                  </div>
-                ) : (
-                <SessionsTable
-                  sessions={demoState === "empty" ? [] : campaignSessions}
-                  campaigns={campaigns}
-                  loading={demoState === "loading"}
-                  selectedSessionId={selectedSessionId}
-                  onSelectSession={openSession}
-                  onOpenSend={requestSend}
-                  onDeleteSession={deleteSession}
-                  onUnlockSession={unlockSession}
-                  {...customColumnProps}
-                />
-                )}
-              </div>
-
-              <footer
-                className={cn(
-                  "flex shrink-0 items-center justify-between text-muted-foreground",
-                  isCanvas
-                    ? "h-9 border-t border-(--ink)/[0.06] px-5 text-[11px]"
-                    : "h-8 border-t border-border px-4 text-xs",
-                )}
-              >
-                <span className="tabular-nums">
-                  {campaignSessions.length}{" "}
-                  {campaignSessions.length === 1 ? "post" : "posts"}
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="size-1.5 rounded-(--r-round) bg-emerald-500" />
-                  Synced to Wozku
-                </span>
-              </footer>
-            </div>
-          </>
+        }
+      >
+        {section === "dashboard" ? (
+          <AdminDashboard
+            sessions={sessions}
+            campaigns={campaigns}
+            mockNewUser={mockNewUser}
+            onNavigate={(nextSec) => {
+              setSection(nextSec);
+              if (nextSec === "campaigns") setCampaignView({ type: "list" });
+            }}
+            onOpenCampaign={openCampaign}
+            onOpenSession={openSession}
+            onNewCampaign={() => {
+              setSection("campaigns");
+              setCampaignView({ type: "wizard", state: { step: 1, campaignId: null, postIds: [] } });
+            }}
+            onNewContent={handleNewContent}
+            onCalculateRoi={() => {
+              if (campaigns[0]) setRoiSheetCampaignId(campaigns[0].id);
+            }}
+          />
+        ) : section === "community" ? (
+          <SectionPlaceholder
+            icon={Users}
+            title="Community"
+            description="Everyone who has shared for you, across every campaign."
+          />
+        ) : section === "settings" ? (
+          <SectionPlaceholder
+            icon={Settings}
+            title="Account Settings"
+            description="Your organisation, your users, and your connected channels."
+          />
         ) : section === "campaigns" ? (
-          campaignWizard ? (
+          campaignView.type === "wizard" ? (
             <CampaignCreateWizard
-              state={campaignWizard}
+              state={campaignView.state}
               initialDraft={blankCampaign()}
               sessions={sessions}
               campaigns={campaigns}
-              onStateChange={setCampaignWizard}
-              onCancel={() => setCampaignWizard(null)}
+              onStateChange={(state) => setCampaignView({ type: "wizard", state })}
+              onCancel={() => setCampaignView({ type: "list" })}
               onCreateCampaign={createCampaign}
               onStageDrafts={(campaignId, postIds) => stageDrafts(postIds, [campaignId])}
               onWriteNewPost={handleNewContent}
-              onGoToCampaign={(id) => {
-                setCampaignWizard(null);
-                setRepoCampaignId(id);
-              }}
-              onBackToRepository={() => {
-                setCampaignWizard(null);
-                setSection("repository");
-              }}
+              onGoToCampaign={(id) => setCampaignView({ type: "detail", campaignId: id })}
+              onBackToRepository={() => setSection("repository")}
             />
-          ) : editingCampaign ? (
+          ) : campaignView.type === "edit" ? (
             <CampaignEditor
-              key={editingCampaign.id}
+              key={campaignView.campaignId}
               mode="edit"
-              initial={toDraft(editingCampaign)}
-              onCancel={() => setEditingCampaignId(null)}
+              initial={toDraft(campaigns.find(c => c.id === campaignView.campaignId)!)}
+              onCancel={() => setCampaignView({ type: "detail", campaignId: campaignView.campaignId })}
               onSave={(draft) => {
-                saveCampaign(editingCampaign.id, draft);
-                setEditingCampaignId(null);
-                setRepoCampaignId(editingCampaign.id);
+                saveCampaign(campaignView.campaignId, draft);
+                setCampaignView({ type: "detail", campaignId: campaignView.campaignId });
               }}
             />
-          ) : screenSetupCampaign ? (
+          ) : campaignView.type === "screen-setup" ? (
             <ScreenSetupPage
-              key={screenSetupCampaign.id}
-              campaign={screenSetupCampaign}
+              key={campaignView.campaignId}
+              campaign={campaigns.find(c => c.id === campaignView.campaignId)!}
               sessions={sessions}
               mediaAssets={mediaAssets}
               onThemeChange={(patch) =>
-                patchCampaignTheme(screenSetupCampaign.id, patch)
+                patchCampaignTheme(campaignView.campaignId, patch)
               }
               onContestChange={(patch) =>
-                patchCampaignContest(screenSetupCampaign.id, patch)
+                patchCampaignContest(campaignView.campaignId, patch)
               }
-              onBack={() => {
-                setScreenSetupCampaignId(null);
-                setRepoCampaignId(null);
-              }}
-              onOpenCampaign={() => {
-                setRepoCampaignId(screenSetupCampaign.id);
-                setScreenSetupCampaignId(null);
-              }}
+              onBack={() => setCampaignView({ type: "detail", campaignId: campaignView.campaignId })}
+              onOpenCampaign={() => setCampaignView({ type: "detail", campaignId: campaignView.campaignId })}
               onToggleVisibility={(sessionId) =>
-                toggleScreenVisibility(screenSetupCampaign.id, sessionId)
+                toggleScreenVisibility(campaignView.campaignId, sessionId)
               }
               onMove={(sessionId, direction) =>
-                moveScreenPost(screenSetupCampaign.id, sessionId, direction)
+                moveScreenPost(campaignView.campaignId, sessionId, direction)
               }
               onReorder={(sessionId, toIndex) =>
-                reorderScreenPost(screenSetupCampaign.id, sessionId, toIndex)
+                reorderScreenPost(campaignView.campaignId, sessionId, toIndex)
               }
               onAddPost={handleNewContent}
               onSelectSession={openSession}
-              onWithdraw={(sessionId) => withdrawDraft(screenSetupCampaign.id, sessionId)}
+              onWithdraw={(sessionId) => withdrawDraft(campaignView.campaignId, sessionId)}
             />
-          ) : repoCampaign ? (
-          <CampaignPage
-            campaign={repoCampaign}
-            campaigns={campaigns}
-            sessions={sessions}
-            mediaAssets={mediaAssets}
-            authorName={currentUser.name}
-            selectedSessionId={selectedSessionId}
-            onBack={() => setRepoCampaignId(null)}
-            onSelectSession={openSession}
-            onOpenSend={requestSend}
-            onDeleteSession={deleteSession}
-            onUnlockSession={unlockSession}
-            onSubmit={(ids) => submitDrafts(repoCampaign.id, ids)}
-            onWithdraw={(id) => withdrawDraft(repoCampaign.id, id)}
-            onGoLive={() => takeCampaignLive(repoCampaign.id)}
-            onEdit={() => setEditingCampaignId(repoCampaign.id)}
-            onAddPost={handleNewContent}
-            onInvite={() => setShowInviteModal(true)}
-            roiOpen={roiSheetCampaignId === repoCampaign.id}
-            onRoiOpenChange={(open) =>
-              setRoiSheetCampaignId(open ? repoCampaign.id : null)
-            }
-            onSettingsChange={(patch) => updateCampaignSettings(repoCampaign.id, patch)}
-            onPausedChange={(paused) => setCampaignPaused(repoCampaign.id, paused)}
-            onStop={() => stopCampaign(repoCampaign.id)}
-            onOpenScreenSetup={() => setScreenSetupCampaignId(repoCampaign.id)}
-          />
+          ) : campaignView.type === "detail" ? (
+            <CampaignPage
+              campaign={campaigns.find(c => c.id === campaignView.campaignId)!}
+              campaigns={campaigns}
+              sessions={sessions}
+              mediaAssets={mediaAssets}
+              authorName={currentUser.name}
+              selectedSessionId={selectedSessionId}
+              onBack={() => setCampaignView({ type: "list" })}
+              onSelectSession={openSession}
+              onOpenSend={requestSend}
+              onDeleteSession={deleteSession}
+              onUnlockSession={unlockSession}
+              onSubmit={(ids) => submitDrafts(campaignView.campaignId, ids)}
+              onWithdraw={(id) => withdrawDraft(campaignView.campaignId, id)}
+              onGoLive={() => takeCampaignLive(campaignView.campaignId)}
+              onEdit={() => setCampaignView({ type: "edit", campaignId: campaignView.campaignId })}
+              onAddPost={handleNewContent}
+              onInvite={() => setShowInviteModal(true)}
+              roiOpen={roiSheetCampaignId === campaignView.campaignId}
+              onRoiOpenChange={(open) =>
+                setRoiSheetCampaignId(open ? campaignView.campaignId : null)
+              }
+              onSettingsChange={(patch) => updateCampaignSettings(campaignView.campaignId, patch)}
+              onPausedChange={(paused) => setCampaignPaused(campaignView.campaignId, paused)}
+              onStop={() => stopCampaign(campaignView.campaignId)}
+              onOpenScreenSetup={() => setCampaignView({ type: "screen-setup", campaignId: campaignView.campaignId })}
+            />
           ) : (
             <CampaignsView
               campaigns={campaigns}
               sessions={sessions}
-              onOpenCampaign={(id) => setRepoCampaignId(id)}
-              onNewCampaign={() => setCampaignWizard({ step: 1, campaignId: null, postIds: [] })}
+              onOpenCampaign={(id) => setCampaignView({ type: "detail", campaignId: id })}
+              onNewCampaign={() => setCampaignView({ type: "wizard", state: { step: 1, campaignId: null, postIds: [] } })}
             />
           )
         ) : (
@@ -1550,11 +1379,11 @@ export default function Home() {
             selectedIds={selectedIds}
             onSelectionChange={setSelectedIds}
             onBulkSend={(ids) => setBulkSendIds(ids)}
-            tableStyle={composerLayout}
+            tableStyle="canvas"
             {...customColumnProps}
           />
         )}
-      </div>
+      </AdminShell>
 
       <Sheet
         open={selectedSession !== null}
@@ -1570,10 +1399,7 @@ export default function Home() {
               selectedSession ? `Editing ${selectedSession.title}` : "Session details"
             }
             overlayClassName="z-40 bg-black/40 backdrop-blur-[2px]"
-            className={cn(
-              "session-pane-surface fixed inset-y-0 right-0 left-auto z-50 flex h-full !max-w-none min-w-[720px] rounded-none border-l border-border bg-background p-0 text-foreground shadow-2xl ring-1 ring-black/10 transition-[width] duration-250 ease-out",
-              mode === "repository" && composerLayout === "canvas" ? "!w-[62%]" : "!w-[70%]",
-            )}
+            className="session-pane-surface fixed inset-y-0 right-0 left-auto z-50 flex h-full !w-[62%] !max-w-none min-w-[720px] rounded-none border-l border-border bg-background p-0 text-foreground shadow-2xl ring-1 ring-black/10 transition-[width] duration-250 ease-out"
           >
             {selectedSession && (
               <div className="flex size-full min-h-0 min-w-0">
@@ -1596,7 +1422,7 @@ export default function Home() {
                       setFeedbackSection(sectionLabel);
                     }}
                     onOpenSend={() => requestSend(selectedSession.id)}
-                    composerLayout={composerLayout}
+                    composerLayout="canvas"
                   />
                 </div>
                 <FeedbackPanel
@@ -1612,7 +1438,6 @@ export default function Home() {
                   onSetStatus={(feedbackId, status) =>
                     setFeedbackStatus(selectedSession.id, feedbackId, status)
                   }
-                  onClearHistory={() => clearHistory(selectedSession.id)}
                   pendingSectionLabel={feedbackSection}
                   onClearPendingSection={() => setFeedbackSection(undefined)}
                 />
@@ -1679,8 +1504,10 @@ export default function Home() {
             ? undefined
             : (initialPostIds) => {
                 setSection("campaigns");
-                setRepoCampaignId(null);
-                setCampaignWizard({ step: 1, campaignId: null, postIds: initialPostIds });
+                setCampaignView({
+                  type: "wizard",
+                  state: { step: 1, campaignId: null, postIds: initialPostIds },
+                });
               }
         }
       />
@@ -1720,10 +1547,8 @@ export default function Home() {
           setSendResult(null);
           setSelectedSessionId(null);
           setSelectedCampaignId(campaignId);
-          if (mode === "repository") {
-            setSection("campaigns");
-            setRepoCampaignId(campaignId);
-          }
+          setSection("campaigns");
+          setCampaignView({ type: "detail", campaignId });
         }}
       />
 
@@ -1754,53 +1579,33 @@ export default function Home() {
         onFilterChange={setChangelogFilter}
       />
 
-      {mode === "classic" ? (
-        <ClassicPostTypeModal
-          open={showPostType}
-          onOpenChange={setShowPostType}
-          onSelect={createContent}
-        />
-      ) : (
-        <PostTypeModal
-          open={showPostType}
-          onOpenChange={setShowPostType}
-          onSelect={createContent}
-        />
-      )}
-
-      <VersionSwitchDialog
-        target={pendingVersion}
-        onOpenChange={(next) => {
-          if (!next) setPendingVersion(null);
-        }}
-        onConfirm={() => {
-          setSelectedSessionId(null);
-          if (pendingVersion) changeVersion(pendingVersion);
-          setPendingVersion(null);
-        }}
+      <PostTypeModal
+        open={showPostType}
+        onOpenChange={setShowPostType}
+        onSelect={createContent}
       />
 
-      {mode === "repository" && tourOpen && (
+      {tourOpen && (
         <Walkthrough
           onOpenChange={setTourOpen}
           steps={APP_TOUR}
-          section={section}
+          section={section === "campaigns" ? "campaigns" : "repository"}
           onNavigate={(next) => {
             setSection(next);
-            if (next === "campaigns") setRepoCampaignId(null);
+            if (next === "campaigns") setCampaignView({ type: "list" });
           }}
           finishLabel="Create your first post"
           onFinished={startTutorial}
         />
       )}
 
-      {mode === "repository" && tutorialOpen && !tutorialDone && (
+      {tutorialOpen && !tutorialDone && (
         <Walkthrough
           onOpenChange={(next) => {
             if (!next && !tutorialFinishing.current) endTutorial(false);
           }}
           steps={CREATE_POST_TUTORIAL}
-          section={section}
+          section={section === "campaigns" ? "campaigns" : "repository"}
           onNavigate={setSection}
           ctx={tutorialCtx}
           onFinished={() => {
@@ -1844,11 +1649,8 @@ export default function Home() {
           onDemoState={(id) => setDemoState(id as DemoState)}
           brandMode={brandMode}
           onBrandMode={setBrandMode}
-          version={mode}
-          versions={VERSIONS}
-          onVersion={(id) => {
-            if (id !== mode) setPendingVersion(id as AppVersion);
-          }}
+          mockNewUser={mockNewUser}
+          onToggleMockNewUser={() => setMockNewUser(!mockNewUser)}
           onResetTour={() => {
             resetTour();
             setDevPanelOpen(false);
@@ -1859,6 +1661,6 @@ export default function Home() {
           }}
         />
       )}
-    </div>
+    </>
   );
 }

@@ -21,6 +21,7 @@ export function LiveScreen({
   mediaAssets,
   momentId,
   running = true,
+  isPreview = false,
   onMomentChange,
 }: {
   campaign: Campaign;
@@ -28,6 +29,7 @@ export function LiveScreen({
   mediaAssets: MediaAsset[];
   momentId?: MomentId;
   running?: boolean;
+  isPreview?: boolean;
   onMomentChange?: (id: MomentId) => void;
 }) {
   const theme = campaign.theme;
@@ -92,7 +94,7 @@ export function LiveScreen({
 
       {chrome ? createElement(chrome, props, body) : body}
 
-      {!single && moments.length > 1 && !momentId && (
+      {!single && moments.length > 1 && !momentId && !isPreview && (
         <div className="absolute inset-x-0 bottom-[3%] z-30 flex items-center justify-center gap-1.5">
           {moments.map((m, i) => (
             <span

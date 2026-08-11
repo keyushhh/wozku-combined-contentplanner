@@ -74,6 +74,7 @@ export function Walkthrough({
   const [index, setIndex] = useState(0);
   const [rect, setRect] = useState<Rect | null>(null);
   const [resolving, setResolving] = useState(false);
+  const [anchorMenuOpen, setAnchorMenuOpen] = useState(false);
 
   // Finishing returns here rather than stranding the user mid-tour.
   const homeSection = useRef<TourSection>(section);
@@ -164,6 +165,40 @@ export function Walkthrough({
     };
   }, [step]);
 
+  // Popups open at z-50, under this layer, so the layer stands down while one is open.
+  useEffect(() => {
+    if (!step) return;
+
+    let el: HTMLElement | null = null;
+    const observer = new MutationObserver(read);
+
+    function read() {
+      setAnchorMenuOpen(Boolean(el?.querySelector('[aria-expanded="true"]')));
+    }
+
+    let raf = 0;
+    function attach() {
+      el = findAnchor(step.anchor);
+      if (!el) {
+        raf = requestAnimationFrame(attach);
+        return;
+      }
+      read();
+      observer.observe(el, {
+        attributes: true,
+        subtree: true,
+        attributeFilter: ["aria-expanded"],
+      });
+    }
+
+    attach();
+    return () => {
+      cancelAnimationFrame(raf);
+      observer.disconnect();
+      setAnchorMenuOpen(false);
+    };
+  }, [step]);
+
   const close = useCallback(() => {
     if (homeSection.current !== section) onNavigate(homeSection.current);
     onOpenChange(false);
@@ -182,6 +217,7 @@ export function Walkthrough({
   const back = useCallback(() => setIndex((i) => Math.max(0, i - 1)), []);
 
   useEffect(() => {
+    if (anchorMenuOpen) return;
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") {
         e.preventDefault();
@@ -196,7 +232,7 @@ export function Walkthrough({
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [close, next, back]);
+  }, [close, next, back, anchorMenuOpen]);
 
   const [tick, setTick] = useState(0);
   useEffect(() => {
@@ -254,7 +290,13 @@ export function Walkthrough({
   }
 
   return (
-    <div className="pointer-events-none fixed inset-0 z-[80]" role="presentation">
+    <div
+      role="presentation"
+      className={cn(
+        "pointer-events-none fixed inset-0 z-[80] transition-opacity duration-150 motion-reduce:transition-none",
+        anchorMenuOpen && "opacity-0 [&_*]:pointer-events-none",
+      )}
+    >
       {/* Four blurred panels, not a box-shadow scrim: a shadow can't blur. */}
       {rect ? (
         <>

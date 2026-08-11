@@ -22,8 +22,11 @@ export interface CampaignSettings {
   jobRoles: string[];
 }
 
+export type CampaignMode = "contest" | "campaign";
+
 export interface Campaign {
   id: string;
+  mode: CampaignMode;
   name: string;
   tag: string;
   inWozku: boolean;

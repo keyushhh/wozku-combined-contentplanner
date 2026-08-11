@@ -216,7 +216,7 @@ export function SessionComposer({
     <div className="flex h-full min-h-0 flex-col">
       <div
         className={cn(
-          "z-10 flex shrink-0 items-center justify-between gap-4 border-b px-6 py-3 transition-colors duration-200",
+          "@container/toolbar z-10 flex shrink-0 items-center justify-between gap-4 border-b px-6 py-3 transition-colors duration-200",
           scrolled
             ? "border-(--ink)/[0.07] shadow-(--lift-md)"
             : "border-transparent",
@@ -236,19 +236,23 @@ export function SessionComposer({
           </span>
         </div>
 
-        <div className="flex items-center gap-1.5">
+        <div className="flex shrink-0 items-center gap-1.5">
           {readyToSend && (
             <Button
               size="sm"
-              className="h-8 animate-in gap-1.5 rounded-(--r-pill) bg-violet-600 px-3.5 text-sm text-white shadow-(--lift-accent) duration-300 fade-in zoom-in-95 inset-ring-1 inset-ring-(--ink)/15 transition-[background-color,scale] hover:bg-violet-500 active:scale-(--press)"
+              className="h-8 animate-in gap-1.5 rounded-(--r-pill) bg-violet-600 px-3 text-sm text-white shadow-(--lift-accent) duration-300 fade-in zoom-in-95 inset-ring-1 inset-ring-(--ink)/15 transition-[background-color,scale] hover:bg-violet-500 active:scale-(--press) @[620px]/toolbar:px-3.5"
               onClick={onOpenSend}
+              aria-label={needsResend ? "Send update" : "Send to campaign"}
+              title={needsResend ? "Send update" : "Send to campaign"}
             >
               {needsResend ? (
                 <RefreshCw className="size-3.5" />
               ) : (
                 <Send className="size-3.5" />
               )}
-              {needsResend ? "Send Update" : "Send to Campaign"}
+              <span className="hidden @[620px]/toolbar:inline">
+                {needsResend ? "Send Update" : "Send to Campaign"}
+              </span>
             </Button>
           )}
 
@@ -850,7 +854,7 @@ export function FeedbackButton({
 
 export function Byline({ session }: { session: Session }) {
   return (
-    <span className="mr-2 hidden min-w-0 items-center gap-1.5 text-[11px] text-muted-foreground sm:flex">
+    <span className="mr-2 hidden min-w-0 shrink-0 items-center gap-1.5 text-[11px] text-muted-foreground @[880px]/toolbar:flex">
       <Avatar className="size-4 shrink-0 inset-ring-1 inset-ring-(--ink)/10">
         <AvatarFallback className="text-[8px]">
           {session.lastEditedBy?.name?.[0] ?? "\u2013"}
@@ -1194,7 +1198,7 @@ export function SaveChip({
       onClick={onClick}
       title="Save now (⌘S). Also autosaves on focus loss or every 30 seconds"
       className={cn(
-        "flex h-8 items-center gap-1.5 rounded-(--r-pill) px-3 text-xs inset-ring-1 transition-[background-color,box-shadow,scale] duration-150 active:scale-(--press)",
+        "flex h-8 shrink-0 items-center gap-1.5 rounded-(--r-pill) px-2 text-xs inset-ring-1 transition-[background-color,box-shadow,scale] duration-150 active:scale-(--press) @[560px]/toolbar:px-3",
         state === "dirty"
           ? "bg-amber-500/[0.08] inset-ring-amber-400/25 hover:bg-amber-500/15"
           : "bg-(--ink)/[0.03] inset-ring-(--ink)/[0.08] hover:bg-(--ink)/[0.07] hover:inset-ring-(--ink)/15",
@@ -1225,7 +1229,10 @@ export function SaveChip({
       </span>
       <span
         aria-live="polite"
-        className={cn(state === "dirty" ? "text-amber-300" : "text-muted-foreground")}
+        className={cn(
+          "hidden @[560px]/toolbar:inline",
+          state === "dirty" ? "text-amber-300" : "text-muted-foreground",
+        )}
       >
         {state === "saving"
           ? "Saving…"
