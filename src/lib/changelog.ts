@@ -17,6 +17,18 @@ export type ChangelogDay = {
 
 export const CHANGELOG: ChangelogDay[] = [
   {
+    date: "2026-08-13",
+    entries: [
+      {
+        kind: "improved",
+        title: "Redesigned invite modal with brand styling and swipe-to-remove",
+        detail:
+          "The invite modal was completely redesigned to strictly adhere to the brand guidelines, enforcing sharp 0px corners, dark backgrounds, and emerald accents. Dropdowns were converted from native system selects to custom menus that perfectly match the theme, and removing a user now uses a smooth swipe-to-reveal drag gesture.",
+        commit: "draft",
+      },
+    ],
+  },
+  {
     date: "2026-08-06",
     summary:
       "The screen is the only public surface now, and every post can show you which of its versions is actually earning.",
